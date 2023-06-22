@@ -1,4 +1,5 @@
 const repository = require('./repository');
+const response = require('./response-factory');
 
 exports.login = async function (req, res) {
     const email = req.body.email;
@@ -10,7 +11,7 @@ exports.login = async function (req, res) {
         if (result) {
 
             if (result.password === password) {
-                res.status(200).send({status: 200, response: 'User authentication success'});
+                response.OK('User authentication success');
             } else {
                 throw new Error();
             }
@@ -43,17 +44,30 @@ exports.register = async function (req, res) {
 
 };
 
+/**
+ * Returns a list of users filtered by query parameters
+ * e.g. '/:id/list?course=XYZ'
+ * @param req
+ * @param res
+ * @returns {Promise<void>} foundUsers
+ */
 exports.list = async function (req, res) {
     try {
-        const foundUsers = await repository.User.find({_id: {$ne: req.params.id}});
+        let foundUsers = [];
+        let query = {_id: {$ne: req.params.id}}
+
+        for (const key in req.query) {
+            query[key] = req.query[key];
+            foundUsers = await repository.User.find(query);
+        }
 
         if (foundUsers) {
-            res.status(200).json({status: 200, response: 'User list success', data: foundUsers});
+            response.OK(foundUsers);
         } else {
             throw new Error();
         }
     } catch (e) {
-        res.status(500).send({status: 500, response: 'Something went wrong'});
+        response.INTERNAL_ERROR();
     }
 };
 
