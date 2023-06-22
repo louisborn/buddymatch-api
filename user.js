@@ -1,6 +1,12 @@
 const repository = require('./repository');
 const response = require('./response-factory');
 
+/**
+ * Authenticates a user via email and password
+ * @param req
+ * @param res
+ * @returns {Promise<void>} 200 if authentication OK or 405 if not found or 401 if wrong credentials
+ */
 exports.login = async function (req, res) {
     const email = req.body.email;
     const password = req.body.password;
@@ -11,18 +17,24 @@ exports.login = async function (req, res) {
         if (result) {
 
             if (result.password === password) {
-                response.OK('User authentication success');
+                response.OK(res, 'User authentication success', []);
             } else {
                 throw new Error();
             }
         } else {
-            res.status(405).send({status: 405, response: 'User not found'});
+            response.NOT_FOUND(res);
         }
     } catch (e) {
-        res.status(401).send({status: 401, response: 'User authentication failed'});
+        response.UNAUTHORIZED(res);
     }
 };
 
+/**
+ * Registers a new user
+ * @param req
+ * @param res
+ * @returns {Promise<void>} 200 if registered else 500
+ */
 exports.register = async function (req, res) {
     const newUser = new repository.User({email: req.body.email, password: req.body.password, detail: {}});
 
@@ -36,10 +48,10 @@ exports.register = async function (req, res) {
         const result = await newUser.save();
 
         if (result) {
-            res.status(200).send({status: 200, response: 'User creation success', data: {_id: result._id}});
+            response.OK(res, 'User created', {_id: result._id});
         }
     } catch (e) {
-        res.status(500).send({status: 500, response: 'Something went wrong'});
+        response.INTERNAL_ERROR(res);
     }
 
 };
@@ -62,25 +74,31 @@ exports.list = async function (req, res) {
         }
 
         if (foundUsers) {
-            response.OK(foundUsers);
+            response.OK(res, '', foundUsers);
         } else {
             throw new Error();
         }
     } catch (e) {
-        response.INTERNAL_ERROR();
+        response.INTERNAL_ERROR(res);
     }
 };
 
+/**
+ * Returns the requested user profile
+ * @param req
+ * @param res
+ * @returns {Promise<void>} foundUser The users profile
+ */
 exports.profile = async function (req, res) {
     try {
         const foundUser = await repository.User.find({_id: req.params.id});
 
         if (foundUser) {
-            res.status(200).json({status: 200, response: 'User detail success', data: foundUser});
+            response.OK(res, '', [foundUser]);
         } else {
             throw new Error();
         }
     } catch (e) {
-        res.status(500).send({status: 500, response: 'Something went wrong'});
+        response.INTERNAL_ERROR(res);
     }
 };
