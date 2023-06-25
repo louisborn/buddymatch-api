@@ -1,5 +1,27 @@
 const repository = require('./repository');
 const response = require('./response-factory');
+const jwt = require('jsonwebtoken');
+
+function generateAccessToken(username) {
+    return jwt.sign(username, process.env.TOKEN_SECRET, { expiresIn: '1800s' });
+}
+
+exports.authenticateToken = function(req, res, next) {
+    const authHeader = req.headers['authorization']
+    const token = authHeader && authHeader.split(' ')[1]
+
+    if (token == null) return res.sendStatus(401)
+
+    jwt.verify(token, process.env.TOKEN_SECRET.toString(), (err, user) => {
+        console.log(err)
+
+        if (err) return res.sendStatus(403)
+
+        req.user = user
+
+        next()
+    })
+}
 
 /**
  * Authenticates a user via email and password
@@ -17,7 +39,8 @@ exports.login = async function (req, res) {
         if (result) {
 
             if (result.password === password) {
-                response.OK(res, 'User authentication success', []);
+                const token = generateAccessToken()
+                response.OK(res, 'User authentication success', [token]);
             } else {
                 throw new Error();
             }
@@ -39,7 +62,7 @@ exports.register = async function (req, res) {
     const newUser = new repository.User({email: req.body.email, password: req.body.password, detail: {}});
 
     try {
-        const existUserWithEmail = await repository.User.findOne({email: email});
+        const existUserWithEmail = await repository.User.findOne({email: req.body.email});
 
         if (existUserWithEmail) {
             throw new Error();
