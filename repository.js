@@ -19,20 +19,19 @@ const UserSchema = new Schema(
 
 exports.User = User = mongoose.model('User', UserSchema);
 
-exports.populate = () => {
-    User.deleteMany({}).then(() => {
-        console.log("dev database reset: success");
-    });
+exports.populate = async () => {
+    await User.deleteMany({});
+
+    console.log("dev database reset: success");
 
     const testUsers = [
         ['louisborn111@email.com', 'test123', {}],
         ['pascal@email.com', 'test123', {}],
     ];
 
-    testUsers.forEach(user => {
+    testUsers.forEach(async (user) => {
         const model = new User({email: user[0], password: user[1], detail: user[2]});
-        model.save().then(() => {
-            console.log('populating database with user')
-        });
+        await model.save();
+        console.log('populating database with user')
     });
 }
