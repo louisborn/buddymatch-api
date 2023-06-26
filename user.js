@@ -1,6 +1,8 @@
 const repository = require('./repository');
 const response = require('./response-factory');
 const jwt = require('jsonwebtoken');
+const {isValidObjectId} = require('mongoose');
+const {Match} = require('./repository');
 
 function generateAccessToken(username) {
     return jwt.sign({ username }, process.env.token, { expiresIn: '1800s' });
@@ -128,3 +130,40 @@ exports.profile = async function (req, res) {
         response.INTERNAL_ERROR(res);
     }
 };
+
+exports.match = async function (req, res) {
+    try {
+        const { user1Id, user2Id } = req.body;
+
+        if (!user1Id || !user2Id) {
+            return response.MISSING(res);
+        }
+
+        if (!isValidObjectId(user1Id) || !isValidObjectId(user2Id)) {
+            return res.status(400).json({ error: 'Ungültige Nutzer-IDs.' });
+        }
+
+        const existingMatch = await Match.findOne({
+            $or: [
+                { user1Id, user2Id },
+                { user1Id: user2Id, user2Id: user1Id }
+            ]
+        });
+
+        if (existingMatch) {
+            return res.status(400).json({ error: 'Die Nutzer sind bereits gematcht.' });
+        }
+
+        const match = new Match({
+            user1Id,
+            user2Id
+        });
+
+        await match.save();
+
+        response.OK(res, 'Match erstellt', []);
+    } catch (error) {
+        console.error('Fehler beim Erstellen des Matches:', error);
+        response.INTERNAL_ERROR(res);
+    }
+}

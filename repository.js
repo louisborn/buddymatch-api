@@ -20,6 +20,25 @@ const UserSchema = new Schema(
 
 exports.User = User = mongoose.model('User', UserSchema);
 
+const MatchSchema = new Schema({
+    user1Id: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    user2Id: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    matchDate: {
+        type: Date,
+        default: Date.now
+    }
+});
+
+exports.Match = Match = mongoose.model('Match', MatchSchema);
+
 exports.populate = async () => {
     await User.deleteMany({});
 

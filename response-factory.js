@@ -13,3 +13,7 @@ exports.NOT_FOUND = function (res) {
 exports.UNAUTHORIZED = function (res) {
     return res.status(401).send({status: 401, message: 'Unauthorized', rows: []})
 }
+
+exports.MISSING = function (res) {
+    return res.status(400).send({status: 400, message: 'Missing param', rows: []})
+}
