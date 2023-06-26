@@ -3,7 +3,7 @@ const response = require('./response-factory');
 const jwt = require('jsonwebtoken');
 
 function generateAccessToken(username) {
-    return jwt.sign(username, process.env.TOKEN_SECRET, { expiresIn: '1800s' });
+    return jwt.sign({ username }, process.env.token, { expiresIn: '1800s' });
 }
 
 exports.authenticateToken = function(req, res, next) {
@@ -39,8 +39,11 @@ exports.login = async function (req, res) {
         if (result) {
 
             if (result.password === password) {
-                const token = generateAccessToken()
-                response.OK(res, 'User authentication success', [token]);
+                const token = generateAccessToken(email);
+                response.OK(res, 'User authentication success', {
+                    userId: result._id,
+                    token
+                });
             } else {
                 throw new Error();
             }
