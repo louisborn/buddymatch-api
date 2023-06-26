@@ -62,7 +62,7 @@ exports.login = async function (req, res) {
  * @returns {Promise<void>} 200 if registered else 500
  */
 exports.register = async function (req, res) {
-    const newUser = new repository.User({email: req.body.email, password: req.body.password, detail: {}});
+    const newUser = new repository.User({email: req.body.email, password: req.body.password, detail: req.body.detail});
 
     try {
         const existUserWithEmail = await repository.User.findOne({email: req.body.email});
