@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const repository = require('./repository');
 const response = require('./response-factory');
 const jwt = require('jsonwebtoken');
@@ -117,7 +118,8 @@ exports.list = async function (req, res) {
  */
 exports.profile = async function (req, res) {
     try {
-        const foundUser = await repository.User.find({_id: req.params.id});
+        const id = new mongoose.Types.ObjectId(req.params.id);
+        const foundUser = await repository.User.findById(id);
 
         if (foundUser) {
             return response.OK(res, 'Profile data found', [foundUser]);
