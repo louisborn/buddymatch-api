@@ -30,7 +30,9 @@ app.post('/login', userController.login);
 app.post('/register', userController.register);
 app.get('/:id/list', authenticateToken, userController.list);
 app.get('/profile/:id', authenticateToken, userController.profile);
+app.get('/match/:id/list', authenticateToken, userController.matchesByUser);
 app.post('/match', authenticateToken, userController.match);
+app.post('/match/:acceptor/accept/:sender', authenticateToken, userController.matchAccept);
 
 repository.populate();
 

@@ -5,18 +5,16 @@ const {isValidObjectId} = require('mongoose');
 const {Match} = require('./repository');
 
 function generateAccessToken(username) {
-    return jwt.sign({ username }, process.env.token, { expiresIn: '1800s' });
+    return jwt.sign({username}, process.env.token, {expiresIn: '1800s'});
 }
 
-exports.authenticateToken = function(req, res, next) {
+exports.authenticateToken = function (req, res, next) {
     const authHeader = req.headers['authorization']
     const token = authHeader && authHeader.split(' ')[1]
 
     if (token == null) return res.sendStatus(401)
 
-    jwt.verify(token, process.env.TOKEN_SECRET.toString(), (err, user) => {
-        console.log(err)
-
+    jwt.verify(token, process.env.token.toString(), (err, user) => {
         if (err) return res.sendStatus(403)
 
         req.user = user
@@ -42,7 +40,7 @@ exports.login = async function (req, res) {
 
             if (result.password === password) {
                 const token = generateAccessToken(email);
-                response.OK(res, 'User authentication success', {
+                return response.OK(res, 'User authentication success', {
                     userId: result._id,
                     token
                 });
@@ -50,10 +48,10 @@ exports.login = async function (req, res) {
                 throw new Error();
             }
         } else {
-            response.NOT_FOUND(res);
+            return response.NOT_FOUND(res);
         }
     } catch (e) {
-        response.UNAUTHORIZED(res);
+        return response.UNAUTHORIZED(res);
     }
 };
 
@@ -76,10 +74,10 @@ exports.register = async function (req, res) {
         const result = await newUser.save();
 
         if (result) {
-            response.OK(res, 'User created', {_id: result._id});
+            return response.OK(res, 'User created', {_id: result._id});
         }
     } catch (e) {
-        response.INTERNAL_ERROR(res);
+        return response.INTERNAL_ERROR(res);
     }
 
 };
@@ -102,12 +100,12 @@ exports.list = async function (req, res) {
         }
 
         if (foundUsers) {
-            response.OK(res, '', foundUsers);
+            return response.OK(res, 'Users found', foundUsers);
         } else {
             throw new Error();
         }
     } catch (e) {
-        response.INTERNAL_ERROR(res);
+        return response.INTERNAL_ERROR(res);
     }
 };
 
@@ -122,48 +120,77 @@ exports.profile = async function (req, res) {
         const foundUser = await repository.User.find({_id: req.params.id});
 
         if (foundUser) {
-            response.OK(res, '', [foundUser]);
+            return response.OK(res, 'Profile data found', [foundUser]);
         } else {
             throw new Error();
         }
     } catch (e) {
-        response.INTERNAL_ERROR(res);
+        return response.INTERNAL_ERROR(res);
     }
 };
 
 exports.match = async function (req, res) {
     try {
-        const { user1Id, user2Id } = req.body;
+        const sender = req.body.sender;
+        const acceptor = req.body.acceptor;
 
-        if (!user1Id || !user2Id) {
+        if (!sender || !acceptor) {
             return response.MISSING(res);
         }
 
-        if (!isValidObjectId(user1Id) || !isValidObjectId(user2Id)) {
-            return res.status(400).json({ error: 'Ungültige Nutzer-IDs.' });
+        if (!isValidObjectId(sender) || !isValidObjectId(acceptor)) {
+            return res.status(400).json({error: 'Ungültige Nutzer-IDs.'});
         }
 
         const existingMatch = await Match.findOne({
             $or: [
-                { user1Id, user2Id },
-                { user1Id: user2Id, user2Id: user1Id }
+                {sender, acceptor},
+                {sender: sender, acceptor: acceptor}
             ]
         });
 
         if (existingMatch) {
-            return res.status(400).json({ error: 'Die Nutzer sind bereits gematcht.' });
+            return res.status(400).json({error: 'Die Nutzer sind bereits gematcht.'});
         }
 
         const match = new Match({
-            user1Id,
-            user2Id
+            sender,
+            acceptor
         });
 
         await match.save();
 
-        response.OK(res, 'Match erstellt', []);
+        return response.OK(res, 'Match erstellt', []);
     } catch (error) {
         console.error('Fehler beim Erstellen des Matches:', error);
-        response.INTERNAL_ERROR(res);
+        return response.INTERNAL_ERROR(res);
+    }
+}
+
+exports.matchesByUser = async function (req, res) {
+    try {
+        const existingMatches = await Match.find({sender: req.params.id});
+
+        if (existingMatches) {
+            return response.OK(res, 'Matches found', existingMatches);
+        }
+        throw new Error();
+    } catch (e) {
+        return response.INTERNAL_ERROR(res);
+    }
+}
+
+exports.matchAccept = async function (req, res) {
+    try {
+        const filter = {sender: req.params.sender, acceptor: req.params.acceptor};
+        const update = {accepted: true};
+        const match = await Match.findOneAndUpdate(filter, update, {new: true});
+
+        if (match) {
+            return response.OK(res, 'Match updated', match);
+        }
+        throw new Error();
+    } catch (e) {
+        return response.INTERNAL_ERROR(res);
     }
 }

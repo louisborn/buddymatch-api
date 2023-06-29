@@ -21,15 +21,19 @@ const UserSchema = new Schema(
 exports.User = User = mongoose.model('User', UserSchema);
 
 const MatchSchema = new Schema({
-    user1Id: {
+    sender: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
-    user2Id: {
+    acceptor: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
+    },
+    accepted: {
+        type: Boolean,
+        default: false
     },
     matchDate: {
         type: Date,
