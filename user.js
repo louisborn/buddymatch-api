@@ -122,7 +122,7 @@ exports.profile = async function (req, res) {
         const foundUser = await repository.User.findById(id);
 
         if (foundUser) {
-            return response.OK(res, 'Profile data found', [foundUser]);
+            return response.OK(res, 'Profile data found', { user: foundUser });
         } else {
             throw new Error();
         }
