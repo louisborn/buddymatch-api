@@ -29,11 +29,13 @@ io.on('connection', (socket) => {
     socket.join(chatId);
 
     socket.on('private message', async function ({content, to, senderId}) {
-        const updatedChat = await updateChat(to, senderId, content);
+        const chatId = new mongoose.Types.ObjectId(to);
+        const userId = new mongoose.Types.ObjectId(senderId);
+        const updatedChat = await updateChat(chatId, userId, content);
         if (updatedChat) {
             socket.to(to).emit('private message', {
                 content,
-                from: socket.id,
+                from: to
             });
         }
     });
