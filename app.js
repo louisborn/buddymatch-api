@@ -25,15 +25,15 @@ app.use(cors());
 app.use(bodyParser());
 
 io.on('connection', (socket) => {
-    const chatId = socket.handshake.query.chatId;
-    socket.join(chatId);
+    const room = socket.handshake.query.chatId;
+    socket.join(room);
 
     socket.on('private message', async function ({content, to, senderId}) {
         const chatId = new mongoose.Types.ObjectId(to);
         const userId = new mongoose.Types.ObjectId(senderId);
         const updatedChat = await updateChat(chatId, userId, content);
         if (updatedChat) {
-            socket.to(to).emit('private message', {
+            io.to(to).emit('private message', {
                 content,
                 from: to
             });
@@ -54,7 +54,7 @@ app.get('/list/chats/:id', authenticateToken, userController.listChats);
 app.post('/match', authenticateToken, userController.match);
 app.post('/match/:acceptor/accept/:sender', authenticateToken, userController.matchAccept);
 
-repository.populate();
+//repository.populate();
 
 http.listen(port, () => {
     console.log(`application listening on port: ${port}`);
