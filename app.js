@@ -14,8 +14,10 @@ const userController = require('./user');
 var cors = require('cors');
 const {authenticateToken} = require('./user');
 
-const http = createServer();
-const io = new Server(http);
+const http = createServer(app);
+const io = new Server(http, {
+    cors: { origin: 'http://localhost:4200' }
+});
 mongoose.connect(process.env.db);
 
 app.use(cors());
@@ -29,19 +31,13 @@ io.on("connection", function(socket) {
     });
 
     socket.on("chat_message", function(data) {
-        data.username = this.username;
-        socket.broadcast.emit("chat_message", data);
+        io.emit("chat_message", { user: this.username, message: data });
     });
 
     socket.on("disconnect", function(data) {
         socket.broadcast.emit("user_leave", this.username);
     });
 });
-
-app.get("/chat", function(req, res) {
-    console.log('chatting');
-});
-
 
 app.post('/login', userController.login);
 app.post('/register', userController.register);
