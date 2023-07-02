@@ -3,7 +3,11 @@ const repository = require('./repository');
 const response = require('./response-factory');
 const jwt = require('jsonwebtoken');
 const {isValidObjectId} = require('mongoose');
-const {Match} = require('./repository');
+const {Match, Chat} = require('./repository');
+
+function toObjectId(id) {
+    return new mongoose.Types.ObjectId(id);
+}
 
 function generateAccessToken(username) {
     return jwt.sign({username}, process.env.token, {expiresIn: '1800s'});
@@ -118,11 +122,11 @@ exports.list = async function (req, res) {
  */
 exports.profile = async function (req, res) {
     try {
-        const id = new mongoose.Types.ObjectId(req.params.id);
+        const id = toObjectId(req.params.id);
         const foundUser = await repository.User.findById(id);
 
         if (foundUser) {
-            return response.OK(res, 'Profile data found', { user: foundUser });
+            return response.OK(res, 'Profile data found', {user: foundUser});
         } else {
             throw new Error();
         }
@@ -169,7 +173,7 @@ exports.match = async function (req, res) {
     }
 }
 
-exports.matchesByUser = async function (req, res) {
+exports.matchesBySender = async function (req, res) {
     try {
         const existingMatches = await Match.find({sender: req.params.id});
 
@@ -182,6 +186,23 @@ exports.matchesByUser = async function (req, res) {
     }
 }
 
+exports.matchesByAcceptor = async function (req, res) {
+    try {
+        const existingMatches = await Match.find({acceptor: req.params.id});
+
+        if (existingMatches) {
+            return response.OK(res, 'Matches found', existingMatches);
+        }
+        throw new Error();
+    } catch (e) {
+        return response.INTERNAL_ERROR(res);
+    }
+}
+
+/**
+ * Accepts a pending match and creates a new chat instance.
+ * On 200 returns the chat instance id.
+ */
 exports.matchAccept = async function (req, res) {
     try {
         const filter = {sender: req.params.sender, acceptor: req.params.acceptor};
@@ -189,10 +210,47 @@ exports.matchAccept = async function (req, res) {
         const match = await Match.findOneAndUpdate(filter, update, {new: true});
 
         if (match) {
-            return response.OK(res, 'Match updated', match);
+            const participants = [toObjectId(req.params.sender), toObjectId(req.params.acceptor)];
+            const newChat = new repository.Chat({participants: participants});
+            const result = await newChat.save();
+
+            if (result) {
+                return response.OK(res, 'Chat created', {chat_id: result._id});
+            }
         }
         throw new Error();
     } catch (e) {
         return response.INTERNAL_ERROR(res);
     }
+}
+
+/**
+ * Returns a list of chats where the user with the id is participant.
+ */
+exports.listChats = async function (req, res) {
+    try {
+        const existingChats = await Chat.find({participants: req.params.id});
+
+        if (existingChats) {
+            return response.OK(res, 'Matches found', existingChats);
+        }
+        throw new Error();
+    } catch (e) {
+        return response.INTERNAL_ERROR(res);
+    }
+}
+
+exports.updateChat = async function (to, senderId, content) {
+    return Chat.findByIdAndUpdate(
+        to,
+        {
+            $push: {
+                messages: {
+                    sender: senderId,
+                    content: content
+                }
+            }
+        },
+        {new: true}
+    );
 }
