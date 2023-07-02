@@ -97,12 +97,26 @@ exports.register = async function (req, res) {
 exports.list = async function (req, res) {
     try {
         let foundUsers = [];
-        let query = {_id: {$ne: req.params.id}}
+        const id = new mongoose.Types.ObjectId(req.params.id);
+        let query = {_id: {$ne: id}};
 
-        for (const key in req.query) {
-            query[key] = req.query[key];
-            foundUsers = await repository.User.find(query);
+        if(req.query.study_program) {
+            query.study_program = req.query.study_program;
         }
+        if(req.query.attended_courses) {
+            const courses = req.query.attended_courses.split(',');
+            query['detail.attended_courses'] = {
+                '$all': courses
+            };
+        }
+        if(req.query.skills) {
+            const skills = req.query.skills.split(',');
+            query['detail.skills'] = {
+                '$all': skills
+            };
+        }
+
+        foundUsers = await repository.User.find(query);
 
         if (foundUsers) {
             return response.OK(res, 'Users found', foundUsers);
