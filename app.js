@@ -24,9 +24,13 @@ mongoose.connect(process.env.db);
 app.use(cors());
 app.use(bodyParser());
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
     const room = socket.handshake.query.chatId;
     socket.join(room);
+
+    const initialChatId = new mongoose.Types.ObjectId(room);
+    const messages = await repository.Chat.findById(initialChatId);
+    io.to(room).emit('connected', messages);
 
     socket.on('private message', async function ({content, to, senderId}) {
         const chatId = new mongoose.Types.ObjectId(to);
@@ -35,7 +39,7 @@ io.on('connection', (socket) => {
         if (updatedChat) {
             io.to(to).emit('private message', {
                 content,
-                from: to
+                from: senderId
             });
         }
     });
@@ -54,6 +58,7 @@ app.get('/list/chats/:id', authenticateToken, userController.listChats);
 app.post('/match', authenticateToken, userController.match);
 app.post('/match/:acceptor/accept/:sender', authenticateToken, userController.matchAccept);
 
+// Commented out so that the userids dont change all the time :)
 //repository.populate();
 
 http.listen(port, () => {
