@@ -24,16 +24,22 @@ mongoose.connect(process.env.db);
 app.use(cors());
 app.use(bodyParser());
 
-io.on('connection', (socket) => {
-    const chatId = socket.handshake.query.chatId;
-    socket.join(chatId);
+io.on('connection', async (socket) => {
+    const room = socket.handshake.query.chatId;
+    socket.join(room);
+
+    const initialChatId = new mongoose.Types.ObjectId(room);
+    const messages = await repository.Chat.findById(initialChatId);
+    io.to(room).emit('connected', messages);
 
     socket.on('private message', async function ({content, to, senderId}) {
-        const updatedChat = await updateChat(to, senderId, content);
+        const chatId = new mongoose.Types.ObjectId(to);
+        const userId = new mongoose.Types.ObjectId(senderId);
+        const updatedChat = await updateChat(chatId, userId, content);
         if (updatedChat) {
-            socket.to(to).emit('private message', {
+            io.to(to).emit('private message', {
                 content,
-                from: socket.id,
+                from: senderId
             });
         }
     });
@@ -52,7 +58,8 @@ app.get('/list/chats/:id', authenticateToken, userController.listChats);
 app.post('/match', authenticateToken, userController.match);
 app.post('/match/:acceptor/accept/:sender', authenticateToken, userController.matchAccept);
 
-repository.populate();
+// Commented out so that the userids dont change all the time :)
+//repository.populate();
 
 http.listen(port, () => {
     console.log(`application listening on port: ${port}`);
