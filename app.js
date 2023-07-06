@@ -28,9 +28,11 @@ io.on('connection', async (socket) => {
     const room = socket.handshake.query.chatId;
     socket.join(room);
 
-    const initialChatId = new mongoose.Types.ObjectId(room);
-    const messages = await repository.Chat.findById(initialChatId);
-    io.to(room).emit('connected', messages);
+    socket.on('initial messages', async function (chatId) {
+        const id = new mongoose.Types.ObjectId(chatId);
+        const messages = await repository.Chat.findById(id);
+        socket.emit('initial messages', messages);
+    });
 
     socket.on('private message', async function ({content, to, senderId}) {
         const chatId = new mongoose.Types.ObjectId(to);
