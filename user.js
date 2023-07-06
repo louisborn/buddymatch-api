@@ -89,7 +89,7 @@ exports.register = async function (req, res) {
 
 /**
  * Returns a list of users filtered by query parameters
- * Filter study program: ?study_program=Program1,Program2
+ * Filter study program: ?study_programs=Program1,Program2
  * Filter attended courses: ?attended_courses=CourseName1,CourseName2
  * Filter skills: ?skills=Skill1,Skill2
  * @param req
