@@ -87,6 +87,32 @@ exports.register = async function (req, res) {
 
 };
 
+exports.updateUser = async function (req, res) {
+    const id = toObjectId(req.body.userId);
+    const detail = req.body.detail;
+
+    try {
+        const existUser = await repository.User.findById(id);
+
+        if (existUser) {
+            const updatedUser = await repository.User.findByIdAndUpdate(
+                id,
+                { detail },
+                { new: true }
+            );
+
+            if (updatedUser) {
+                return response.OK(res, 'User created', { user: updatedUser });
+            }
+        }
+        else {
+            throw new Error();
+        }
+    } catch (e) {
+        return response.INTERNAL_ERROR(res);
+    }
+};
+
 /**
  * Returns a list of users filtered by query parameters
  * Filter study programs: ?study_program=Program1,Program2
