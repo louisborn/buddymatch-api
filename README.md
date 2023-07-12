@@ -65,7 +65,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
  - [Express.Js](https://expressjs.com)
  - [mongodb](https://www.mongodb.com/)
  - [Mongoose](https://mongoosejs.com)
- - [flask](https://flask.palletsprojects.com/en/2.2.x/)
+ - [Socket.io](https://socket.io)
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
