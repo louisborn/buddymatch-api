@@ -5,6 +5,11 @@ const jwt = require('jsonwebtoken');
 const {isValidObjectId} = require('mongoose');
 const {Match, Chat} = require('./repository');
 
+/**
+ * Converts a string ID to a Mongoose ObjectId.
+ * @param {string} id - The string ID to convert.
+ * @returns {mongoose.Types.ObjectId} - The converted ObjectId.
+ */
 function toObjectId(id) {
     return new mongoose.Types.ObjectId(id);
 }
@@ -13,6 +18,13 @@ function generateAccessToken(username) {
     return jwt.sign({username}, process.env.token, {expiresIn: '1800s'});
 }
 
+/**
+ * Middleware function to authenticate a token in the request header.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function.
+ * @returns {void}
+ */
 exports.authenticateToken = function (req, res, next) {
     const authHeader = req.headers['authorization']
     const token = authHeader && authHeader.split(' ')[1]
@@ -29,10 +41,10 @@ exports.authenticateToken = function (req, res, next) {
 }
 
 /**
- * Authenticates a user via email and password
- * @param req
- * @param res
- * @returns {Promise<void>} 200 if authentication OK or 405 if not found or 401 if wrong credentials
+ * Authenticates a user via email and password.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>} - Resolves with the HTTP response.
  */
 exports.login = async function (req, res) {
     const email = req.body.email;
@@ -61,10 +73,10 @@ exports.login = async function (req, res) {
 };
 
 /**
- * Registers a new user
- * @param req
- * @param res
- * @returns {Promise<void>} 200 if registered else 500
+ * Registers a new user.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>} - Resolves with the HTTP response.
  */
 exports.register = async function (req, res) {
     const newUser = new repository.User({email: req.body.email, password: req.body.password, detail: req.body.detail});
@@ -88,13 +100,10 @@ exports.register = async function (req, res) {
 };
 
 /**
- * Returns a list of users filtered by query parameters
- * Filter study program: ?study_program=Program1,Program2
- * Filter attended courses: ?attended_courses=CourseName1,CourseName2
- * Filter skills: ?skills=Skill1,Skill2
- * @param req
- * @param res
- * @returns {Promise<void>} foundUsers
+ * Returns a list of users filtered by query parameters.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>} - Resolves with the HTTP response.
  */
 exports.list = async function (req, res) {
     try {
@@ -103,7 +112,7 @@ exports.list = async function (req, res) {
         let query = {_id: {$ne: id}};
 
         //Study programs are matched by in because every person only has one
-        if(req.query.study_programs) {
+        if (req.query.study_programs) {
             const programs = req.query.study_programs.split(',');
             query['detail.study_program'] = {
                 '$in': programs
@@ -111,13 +120,13 @@ exports.list = async function (req, res) {
         }
 
         //Other filters are matched by all because a person can have multiple
-        if(req.query.attended_courses) {
+        if (req.query.attended_courses) {
             const courses = req.query.attended_courses.split(',');
             query['detail.attended_courses'] = {
                 '$all': courses
             };
         }
-        if(req.query.skills) {
+        if (req.query.skills) {
             const skills = req.query.skills.split(',');
             query['detail.skills'] = {
                 '$all': skills
@@ -137,10 +146,10 @@ exports.list = async function (req, res) {
 };
 
 /**
- * Returns the requested user profile
- * @param req
- * @param res
- * @returns {Promise<void>} foundUser The users profile
+ * Returns the requested user profile.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>} - Resolves with the HTTP response.
  */
 exports.profile = async function (req, res) {
     try {
@@ -157,6 +166,12 @@ exports.profile = async function (req, res) {
     }
 };
 
+/**
+ * Creates a new match between two users.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>} - Resolves with the HTTP response.
+ */
 exports.match = async function (req, res) {
     try {
         const sender = req.body.sender;
@@ -195,6 +210,12 @@ exports.match = async function (req, res) {
     }
 }
 
+/**
+ * Returns a list of matches by the sender's ID.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>} - Resolves with the HTTP response.
+ */
 exports.matchesBySender = async function (req, res) {
     try {
         const existingMatches = await Match.find({sender: req.params.id});
@@ -208,6 +229,12 @@ exports.matchesBySender = async function (req, res) {
     }
 }
 
+/**
+ * Returns a list of matches by the acceptor's ID.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>} - Resolves with the HTTP response.
+ */
 exports.matchesByAcceptor = async function (req, res) {
     try {
         const existingMatches = await Match.find({acceptor: req.params.id});
@@ -223,7 +250,9 @@ exports.matchesByAcceptor = async function (req, res) {
 
 /**
  * Accepts a pending match and creates a new chat instance.
- * On 200 returns the chat instance id.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>} - Resolves with the HTTP response.
  */
 exports.matchAccept = async function (req, res) {
     try {
@@ -247,7 +276,10 @@ exports.matchAccept = async function (req, res) {
 }
 
 /**
- * Returns a list of chats where the user with the id is participant.
+ * Returns a list of chats where the user with the provided ID is a participant.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>} - Resolves with the HTTP response.
  */
 exports.listChats = async function (req, res) {
     try {
@@ -262,6 +294,13 @@ exports.listChats = async function (req, res) {
     }
 }
 
+/**
+ * Updates a chat by adding a new message.
+ * @param {mongoose.Types.ObjectId} to - The ID of the chat to update.
+ * @param {mongoose.Types.ObjectId} senderId - The ID of the message sender.
+ * @param {string} content - The content of the message.
+ * @returns {Promise<repository.Chat>} - Resolves with the updated chat.
+ */
 exports.updateChat = async function (to, senderId, content) {
     return Chat.findByIdAndUpdate(
         to,
