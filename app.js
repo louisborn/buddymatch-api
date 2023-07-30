@@ -15,16 +15,22 @@ var cors = require('cors');
 const {authenticateToken, updateChat} = require('./user');
 const {Chat} = require('./repository');
 
+// Create an HTTP server and configure Socket.IO
 const http = createServer(app);
 const io = new Server(http, {
     cors: {origin: 'http://localhost:4200'}
 });
+
+// Connect to the MongoDB database
 mongoose.connect(process.env.db);
 
+// Configure Express app
 app.use(cors());
 app.use(bodyParser());
 
+// Socket.IO connection handling
 io.on('connection', async (socket) => {
+    // Join the chat room
     const room = socket.handshake.query.chatId;
     socket.join(room);
 
@@ -34,6 +40,7 @@ io.on('connection', async (socket) => {
         socket.emit('initial messages', messages);
     });
 
+    // Handle private messages
     socket.on('private message', async function ({content, to, senderId}) {
         const chatId = new mongoose.Types.ObjectId(to);
         const userId = new mongoose.Types.ObjectId(senderId);
@@ -46,11 +53,13 @@ io.on('connection', async (socket) => {
         }
     });
 
+    // Handle client disconnection
     socket.on('disconnect', function (data) {
         console.log('disconnect');
     });
 });
 
+// Routes
 app.post('/login', userController.login);
 app.post('/register', userController.register);
 app.get('/:id/list', authenticateToken, userController.list);
@@ -62,9 +71,10 @@ app.get('/list/chats/:id', authenticateToken, userController.listChats);
 app.post('/match', authenticateToken, userController.match);
 app.post('/match/:acceptor/accept/:sender', authenticateToken, userController.matchAccept);
 
-// Commented out so that the userids dont change all the time :)
-//repository.populate();
+// Uncomment the following line to populate the database with dummy user data
+// repository.populate();
 
+// Start the HTTP server
 http.listen(port, () => {
     console.log(`application listening on port: ${port}`);
 });
