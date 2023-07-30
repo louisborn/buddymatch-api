@@ -18,7 +18,7 @@ const {Chat} = require('./repository');
 // Create an HTTP server and configure Socket.IO
 const http = createServer(app);
 const io = new Server(http, {
-    cors: {origin: 'https://buddymatch.vercel.app/'}
+    cors: {origin: 'https://buddymatch.vercel.app'}
 });
 
 // Connect to the MongoDB database
