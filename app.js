@@ -34,10 +34,11 @@ io.on('connection', async (socket) => {
     const room = socket.handshake.query.chatId;
     socket.join(room);
 
-    // Emit initial chat messages to the connected client
-    const initialChatId = new mongoose.Types.ObjectId(room);
-    const messages = await repository.Chat.findById(initialChatId);
-    io.to(room).emit('connected', messages);
+    socket.on('initial messages', async function (chatId) {
+        const id = new mongoose.Types.ObjectId(chatId);
+        const messages = await repository.Chat.findById(id);
+        socket.emit('initial messages', messages);
+    });
 
     // Handle private messages
     socket.on('private message', async function ({content, to, senderId}) {
@@ -63,7 +64,9 @@ app.post('/login', userController.login);
 app.post('/register', userController.register);
 app.get('/:id/list', authenticateToken, userController.list);
 app.get('/profile/:id', authenticateToken, userController.profile);
+app.post('/profile/:id', authenticateToken, userController.updateUser);
 app.get('/match/:id/list', authenticateToken, userController.matchesBySender);
+app.get('/match/acceptor/:id/list', authenticateToken, userController.matchesByAcceptor);
 app.get('/list/chats/:id', authenticateToken, userController.listChats);
 app.post('/match', authenticateToken, userController.match);
 app.post('/match/:acceptor/accept/:sender', authenticateToken, userController.matchAccept);

@@ -99,8 +99,37 @@ exports.register = async function (req, res) {
 
 };
 
+exports.updateUser = async function (req, res) {
+    const id = toObjectId(req.body.userId);
+    const detail = req.body.detail;
+
+    try {
+        const existUser = await repository.User.findById(id);
+
+        if (existUser) {
+            const updatedUser = await repository.User.findByIdAndUpdate(
+                id,
+                { detail },
+                { new: true }
+            );
+
+            if (updatedUser) {
+                return response.OK(res, 'User created', { user: updatedUser });
+            }
+        }
+        else {
+            throw new Error();
+        }
+    } catch (e) {
+        return response.INTERNAL_ERROR(res);
+    }
+};
+
 /**
  * Returns a list of users filtered by query parameters.
+ * Filter study programs: ?study_program=Program1,Program2
+ * Filter attended courses: ?attended_courses=CourseName1,CourseName2
+ * Filter skills: ?skills=Skill1,Skill2
  * @param {Object} req - The request object.
  * @param {Object} res - The response object.
  * @returns {Promise<void>} - Resolves with the HTTP response.
@@ -111,28 +140,24 @@ exports.list = async function (req, res) {
         const id = new mongoose.Types.ObjectId(req.params.id);
         let query = {_id: {$ne: id}};
 
-        //Study programs are matched by in because every person only has one
-        if (req.query.study_programs) {
-            const programs = req.query.study_programs.split(',');
-            query['detail.study_program'] = {
-                '$in': programs
+        const filtersList = [];
+
+        for(const param in req.query) {
+            const key = `detail.${param}`;
+            const filter = {};
+            filter[key] = {
+                '$in': req.query[param].split(',')
             };
+            filtersList.push(filter);
         }
 
-        //Other filters are matched by all because a person can have multiple
-        if (req.query.attended_courses) {
-            const courses = req.query.attended_courses.split(',');
-            query['detail.attended_courses'] = {
-                '$all': courses
-            };
+        if(filtersList.length > 0) {
+            query = {
+                ...query,
+                '$or': filtersList
+            }
         }
-        if (req.query.skills) {
-            const skills = req.query.skills.split(',');
-            query['detail.skills'] = {
-                '$all': skills
-            };
-        }
-
+        
         foundUsers = await repository.User.find(query);
 
         if (foundUsers) {
