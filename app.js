@@ -17,9 +17,7 @@ const {Chat} = require('./repository');
 
 // Create an HTTP server and configure Socket.IO
 const http = createServer(app);
-const io = new Server(http, {
-    cors: {origin: 'http://localhost:4200'}
-});
+const io = new Server(http);
 
 // Connect to the MongoDB database
 mongoose.connect(process.env.db);
